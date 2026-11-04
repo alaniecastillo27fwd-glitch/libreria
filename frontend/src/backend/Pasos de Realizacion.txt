@@ -1,0 +1,154 @@
+Comenzamos creando las carpetas:
+    - models
+    - controllers
+    - routes
+    - services
+    - migrations
+    - config
+
+Creamos los siguientes archivos:
+    - package.json -> npm init -y
+            {
+              "name": "artsupply-pro-backend",
+              "version": "1.0.0",
+              "main": "app.js",
+              "scripts": {
+                "test": "echo \"Error: no test specified\" && exit 1",
+                "start": "node app.js",
+                "dev": "node --watch app.js",
+                "migrate": "npx sequelize-cli db:migrate"
+              },
+              "keywords": [],
+              "author": "",
+              "license": "ISC",
+              "dependencies": {
+                "cors": "^2.8.5",
+                "dotenv": "^16.4.5",
+                "express": "^4.19.2",
+                "mysql2": "^3.11.0",
+                "sequelize": "^6.37.3"
+              },
+              "devDependencies": {
+                "nodemon": "^3.1.4",
+                "sequelize-cli": "^6.6.2"
+              }
+            }
+
+Ejecutamos el siguiente comando:
+    npm i -> Esto para instalar las dependencias del proyecto
+
+Empezamos con las clases en los modelos (Sequelize):
+    En la carpeta models/ se encuentran las 10 tablas del sistema empresarial ArtSupply Pro:
+    1. categoriaModel.js          (Categoria -> tabla categorias)
+    2. marcaModel.js              (Marca -> tabla marcas)
+    3. unidadMedidaModel.js       (UnidadMedida -> tabla unidades_medida)
+    4. almacenModel.js            (Almacen -> tabla almacenes)
+    5. proveedorModel.js          (Proveedor -> tabla proveedores)
+    6. tipoMovimientoModel.js     (TipoMovimiento -> tabla tipos_movimiento)
+    7. productoModel.js           (Producto -> tabla productos)
+    8. inventarioAlmacenModel.js  (InventarioAlmacen -> tabla inventario_almacen)
+    9. movimientoStockModel.js    (MovimientoStock -> tabla movimientos_stock)
+    10. ordenCompraModel.js       (OrdenCompra -> tabla ordenes_compra)
+    - index.js                    (Inicializador Sequelize + creación automática de BD y semillas)
+
+    Para ejecutar las migraciones manualmente con Sequelize CLI:
+        npx sequelize-cli db:migrate
+
+Luego continuamos con funciones en los controllers (controllers/productoController.js):
+    const { Producto, Categoria, Marca, UnidadMedida } = require("../models/");
+
+    exports.agregarProducto = async (req, res) => {
+        try {
+            const newProducto = await Producto.create(req.body);
+            res.status(201).json(newProducto);
+        } catch (error) {
+            res.status(500).json({ message: "Fallo al crear el producto", error: error.message });
+        }
+    };
+
+    exports.eliminarProducto = async (req, res) => {
+        try {
+            await Producto.destroy({ where: { id_producto: req.params.id } });
+            res.json({ message: "Producto eliminado" });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    exports.actualizarProducto = async (req, res) => {
+        try {
+            await Producto.update(req.body, { where: { id_producto: req.params.id } });
+            res.json({ message: "Producto actualizado" });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    exports.obtenerProductos = async (req, res) => {
+        try {
+            const productos = await Producto.findAll();
+            res.json(productos);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+    exports.obtenerProductoPorId = async (req, res) => {
+        try {
+            const producto = await Producto.findByPk(req.params.id);
+            if (!producto) {
+                return res.status(404).json({ message: "Producto no encontrado" });
+            }
+            res.json(producto);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    };
+
+Para el tercer paso, tenemos la ruta (routes/productoRoutes.js):
+    const express = require("express");
+    const router = express.Router();
+    const {
+        agregarProducto,
+        eliminarProducto,
+        actualizarProducto,
+        obtenerProductos,
+        obtenerProductoPorId
+    } = require("../controllers/productoController");
+
+    router.get("/", obtenerProductos);
+    router.get("/:id", obtenerProductoPorId);
+    router.post("/", agregarProducto);
+    router.put("/:id", actualizarProducto);
+    router.patch("/:id", actualizarProducto);
+    router.delete("/:id", eliminarProducto);
+
+    module.exports = router;
+
+Por último paso agregamos la ruta al archivo app.js:
+    const express = require("express");
+    const cors = require("cors");
+    require("dotenv").config();
+    const db = require("./models/");
+
+    const app = express();
+
+    app.use(cors());
+    app.use(express.json());
+
+    db.conectarBaseDeDatos();
+
+    const productoRoute = require("./routes/productoRoutes");
+    app.use("/producto", productoRoute);
+    app.use("/productos", productoRoute);
+    app.use("/api/productos", productoRoute);
+
+    const PORT = process.env.PORT || 3000;
+
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en puerto http://localhost:${PORT}`);
+    });
+
+Por último, levantamos el servidor:
+    - npm start
+    - o en modo watch: npm run dev
