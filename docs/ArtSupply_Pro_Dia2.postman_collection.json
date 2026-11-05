@@ -1,0 +1,1398 @@
+{
+  "info": {
+    "_postman_id": "a9c8e7d6-5b4a-4c3d-8e2f-1a0b9c8d7e6f",
+    "name": "ArtSupply Pro - Día 2 (Autenticación JWT + 3 CRUDs de Negocio Completos)",
+    "description": "Colección de pruebas de integración QA para el Día 2 del Sistema Empresarial ArtSupply Pro. Cubre Autenticación (/api/auth) y los 5 endpoints REST de las 3 entidades de negocio (/api/productos, /api/categorias, /api/proveedores) con casos de éxito (200, 201) y fallo obligatorios (400, 401, 404, 409).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "created_product_id",
+      "value": "9",
+      "type": "string"
+    },
+    {
+      "key": "created_category_id",
+      "value": "5",
+      "type": "string"
+    },
+    {
+      "key": "created_provider_id",
+      "value": "4",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Autenticación (/api/auth)",
+      "item": [
+        {
+          "name": "1.1 Registro Exitoso (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Respuesta es JSON válido y NO expone password', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('correo');",
+                  "    pm.expect(jsonData).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Alanie Castillo\",\n  \"correo\": \"operador@artsupplypro.com\",\n  \"password\": \"ArtSupply2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Registro con Correo Duplicado (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request por correo duplicado', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con propiedad error', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Alanie Castillo Duplicado\",\n  \"correo\": \"operador@artsupplypro.com\",\n  \"password\": \"ArtSupply2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.3 Registro con Contraseña Corta < 8 caracteres (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request por contraseña menor a 8 caracteres', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con detalle de validación', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Usuario Clave Corta\",\n  \"correo\": \"corto@artsupplypro.com\",\n  \"password\": \"12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Login Exitoso + Extracción Automática de Token (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con token JWT y usuario sin password', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('token').that.is.a('string').and.is.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('usuario');",
+                  "    pm.expect(jsonData.usuario).to.not.have.property('password');",
+                  "    pm.environment.set('jwt_token', jsonData.token);",
+                  "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"operador@artsupplypro.com\",\n  \"password\": \"ArtSupply2026!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Login con Credenciales Erróneas (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error genérico sin revelar campo fallido', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error', 'Credenciales incorrectas');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"operador@artsupplypro.com\",\n  \"password\": \"ClaveIncorrecta999\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "1.6 Perfil Actual /api/auth/me con Token Válido (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con perfil autenticado sin password', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('correo');",
+                  "    pm.expect(jsonData).to.not.have.property('password');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "1.7 Perfil Actual /api/auth/me SIN Token (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 401 Unauthorized sin token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error No autorizado', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error', 'No autorizado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. CRUD Productos (/api/productos)",
+      "item": [
+        {
+          "name": "2.1 Productos SIN Header Authorization (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 401 Unauthorized al omitir token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error No autorizado', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error', 'No autorizado');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos",
+              "host": ["{{base_url}}"],
+              "path": ["productos"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Listar Productos con Datos de Categoría Relacionada (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es arreglo JSON con relación categoria incluida', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property('categoria_nombre');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos",
+              "host": ["{{base_url}}"],
+              "path": ["productos"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Crear Producto Válido POST /api/productos (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Respuesta es JSON y guarda created_product_id', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id_producto');",
+                  "    pm.collectionVariables.set('created_product_id', jsonData.id_producto);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_sku\": \"OLE-WN-777\",\n  \"nombre\": \"Óleo Profesional Verde Viridian 37ml\",\n  \"descripcion\": \"Pigmento PG18 transparente de secado lento para veladuras.\",\n  \"precio_compra\": 11.50,\n  \"precio_venta\": 22.90,\n  \"stock_minimo\": 12,\n  \"id_categoria\": 1,\n  \"id_marca\": 1,\n  \"id_unidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/productos",
+              "host": ["{{base_url}}"],
+              "path": ["productos"]
+            }
+          }
+        },
+        {
+          "name": "2.4 Crear Producto con FK Inexistente id_categoria=99999 (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request ante FK inexistente', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con descripción del error', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_sku\": \"OLE-ERR-999\",\n  \"nombre\": \"Producto con Categoría Inexistente\",\n  \"precio_compra\": 10.00,\n  \"precio_venta\": 20.00,\n  \"stock_minimo\": 5,\n  \"id_categoria\": 99999,\n  \"id_marca\": 1,\n  \"id_unidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/productos",
+              "host": ["{{base_url}}"],
+              "path": ["productos"]
+            }
+          }
+        },
+        {
+          "name": "2.5 Obtener Producto por ID Existente GET /api/productos/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con id_producto y categoria', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id_producto');",
+                  "    pm.expect(jsonData).to.have.property('categoria_nombre');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos/{{created_product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "{{created_product_id}}"]
+            }
+          }
+        },
+        {
+          "name": "2.6 Ver Producto Inexistente GET /api/productos/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos/99999",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "99999"]
+            }
+          }
+        },
+        {
+          "name": "2.7 Actualizar Producto Existente PUT /api/productos/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con datos actualizados', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_sku\": \"OLE-WN-777\",\n  \"nombre\": \"Óleo Profesional Verde Viridian 37ml (Edición Especial)\",\n  \"descripcion\": \"Actualización de precio mayorista y stock mínimo.\",\n  \"precio_compra\": 12.00,\n  \"precio_venta\": 24.50,\n  \"stock_minimo\": 18,\n  \"id_categoria\": 1,\n  \"id_marca\": 1,\n  \"id_unidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/productos/{{created_product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "{{created_product_id}}"]
+            }
+          }
+        },
+        {
+          "name": "2.8 Actualizar Producto con FK Inexistente PUT /api/productos/:id (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request al actualizar con FK inválida', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_sku\": \"OLE-WN-777\",\n  \"nombre\": \"Producto con FK Inválida\",\n  \"precio_compra\": 12.00,\n  \"precio_venta\": 24.50,\n  \"stock_minimo\": 18,\n  \"id_categoria\": 99999,\n  \"id_marca\": 1,\n  \"id_unidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/productos/{{created_product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "{{created_product_id}}"]
+            }
+          }
+        },
+        {
+          "name": "2.9 Actualizar Producto Inexistente PUT /api/productos/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found al actualizar ID inexistente', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo_sku\": \"OLE-WN-404\",\n  \"nombre\": \"Producto Inexistente\",\n  \"precio_compra\": 10.00,\n  \"precio_venta\": 18.00,\n  \"stock_minimo\": 5,\n  \"id_categoria\": 1,\n  \"id_marca\": 1,\n  \"id_unidad\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/productos/99999",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "99999"]
+            }
+          }
+        },
+        {
+          "name": "2.10 Eliminar Producto con Dependencias DELETE /api/productos/1 (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 409 Conflict por dependencias en órdenes/stock', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Respuesta es JSON detallando conflicto', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos/1",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "1"]
+            }
+          }
+        },
+        {
+          "name": "2.11 Eliminar Producto Inexistente DELETE /api/productos/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found al eliminar ID inexistente', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos/99999",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "99999"]
+            }
+          }
+        },
+        {
+          "name": "2.12 Eliminar Producto Creado sin Dependencias DELETE /api/productos/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK al eliminar registro sin dependencias', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON confirmando eliminación', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/productos/{{created_product_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["productos", "{{created_product_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. CRUD Categorías (/api/categorias)",
+      "item": [
+        {
+          "name": "3.1 Categorías SIN Header Authorization (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 401 Unauthorized sin token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Listar Categorías con Productos Asociados GET /api/categorias (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es arreglo JSON con relación productos', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            }
+          }
+        },
+        {
+          "name": "3.3 Crear Categoría Válida POST /api/categorias (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Respuesta es JSON y guarda created_category_id', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id_categoria');",
+                  "    pm.collectionVariables.set('created_category_id', jsonData.id_categoria);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Grabado y Xilografía Profesional\",\n  \"descripcion\": \"Gubias, rodillos, tintas calcográficas y matrices de linóleo.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            }
+          }
+        },
+        {
+          "name": "3.4 Crear Categoría Inválida sin Nombre POST /api/categorias (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con error', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias",
+              "host": ["{{base_url}}"],
+              "path": ["categorias"]
+            }
+          }
+        },
+        {
+          "name": "3.5 Obtener Categoría por ID Existente GET /api/categorias/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con id_categoria', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('id_categoria');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/{{created_category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "{{created_category_id}}"]
+            }
+          }
+        },
+        {
+          "name": "3.6 Ver Categoría Inexistente GET /api/categorias/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/99999",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "99999"]
+            }
+          }
+        },
+        {
+          "name": "3.7 Actualizar Categoría Existente PUT /api/categorias/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Grabado, Calcografía y Xilografía\",\n  \"descripcion\": \"Insumos especializados para técnicas de estampación artística.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias/{{created_category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "{{created_category_id}}"]
+            }
+          }
+        },
+        {
+          "name": "3.8 Actualizar Categoría Inexistente PUT /api/categorias/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Categoría Inexistente\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/categorias/99999",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "99999"]
+            }
+          }
+        },
+        {
+          "name": "3.9 Eliminar Categoría con Productos Dependientes DELETE /api/categorias/1 (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 409 Conflict por integridad referencial', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Respuesta es JSON detallando conflicto', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/1",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "1"]
+            }
+          }
+        },
+        {
+          "name": "3.10 Eliminar Categoría Creada sin Dependencias DELETE /api/categorias/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categorias/{{created_category_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["categorias", "{{created_category_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. CRUD Proveedores (/api/proveedores)",
+      "item": [
+        {
+          "name": "4.1 Proveedores SIN Header Authorization (401 Unauthorized)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 401 Unauthorized sin token', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Listar Proveedores con Órdenes Asociadas GET /api/proveedores (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es arreglo JSON con relación ordenes_compra', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores"]
+            }
+          }
+        },
+        {
+          "name": "4.3 Crear Proveedor Válido POST /api/proveedores (201 Created)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Respuesta es JSON y guarda created_provider_id', function () {",
+                  "    pm.response.to.be.json;",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id_proveedor');",
+                  "    pm.collectionVariables.set('created_provider_id', jsonData.id_proveedor);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identificacion_fiscal\": \"FR-SIRET-7712900\",\n  \"nombre\": \"Sennelier Paris SAS\",\n  \"contacto\": \"Claire Moreau\",\n  \"telefono\": \"+33 1 43 26 54 11\",\n  \"correo_comercial\": \"commandes@sennelier.fr\",\n  \"direccion\": \"3 Quai Voltaire, 75007 Paris, Francia\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proveedores",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores"]
+            }
+          }
+        },
+        {
+          "name": "4.4 Crear Proveedor con Datos Faltantes POST /api/proveedores (400 Bad Request)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Respuesta es JSON con detalles de validación', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Proveedor Incompleto\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proveedores",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores"]
+            }
+          }
+        },
+        {
+          "name": "4.5 Obtener Proveedor por ID Existente GET /api/proveedores/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON con id_proveedor', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('id_proveedor');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores/{{created_provider_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "{{created_provider_id}}"]
+            }
+          }
+        },
+        {
+          "name": "4.6 Ver Proveedor Inexistente GET /api/proveedores/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores/99999",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "99999"]
+            }
+          }
+        },
+        {
+          "name": "4.7 Actualizar Proveedor Existente PUT /api/proveedores/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identificacion_fiscal\": \"FR-SIRET-7712900\",\n  \"nombre\": \"Sennelier Paris Fine Arts SAS\",\n  \"contacto\": \"Claire Moreau\",\n  \"telefono\": \"+33 1 43 26 54 99\",\n  \"correo_comercial\": \"commandes@sennelier.fr\",\n  \"direccion\": \"3 Quai Voltaire, Paris\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proveedores/{{created_provider_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "{{created_provider_id}}"]
+            }
+          }
+        },
+        {
+          "name": "4.8 Actualizar Proveedor Inexistente PUT /api/proveedores/99999 (404 Not Found)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identificacion_fiscal\": \"FR-SIRET-00000\",\n  \"nombre\": \"Proveedor Fantasma\",\n  \"contacto\": \"N/A\",\n  \"telefono\": \"0000000\",\n  \"correo_comercial\": \"fantasma@test.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proveedores/99999",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "99999"]
+            }
+          }
+        },
+        {
+          "name": "4.9 Eliminar Proveedor con Órdenes Dependientes DELETE /api/proveedores/1 (409 Conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 409 Conflict por órdenes de compra asociadas', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Respuesta es JSON detallando conflicto', function () {",
+                  "    pm.response.to.be.json;",
+                  "    pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores/1",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "1"]
+            }
+          }
+        },
+        {
+          "name": "4.10 Eliminar Proveedor Creado sin Dependencias DELETE /api/proveedores/:id (200 OK)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code es 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Respuesta es JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{jwt_token}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proveedores/{{created_provider_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proveedores", "{{created_provider_id}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
